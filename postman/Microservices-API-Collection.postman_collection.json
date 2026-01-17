@@ -1,0 +1,671 @@
+{
+  "info": {
+    "_postman_id": "microservices-collection-2024",
+    "name": "Microservices Architecture - Complete API Collection",
+    "description": "Complete Postman collection for testing all 10 use cases between Shop Management (Server A) and Product Stock (Server B) services.\n\n## Architecture Overview\n- **Server A (Shop Management)**: Public-facing orchestration service on port 8080\n- **Server B (Product Stock)**: Internal backend service on port 8081\n\n## Communication Protocols\n- REST: Use Cases 1, 2, 3, 8, 9, 10\n- SOAP: Use Cases 4, 5\n- GraphQL: Use Cases 6, 7",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "shopServerUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "stockServerUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "shopApiBase",
+      "value": "{{shopServerUrl}}/api/shop",
+      "type": "string"
+    },
+    {
+      "key": "stockApiBase",
+      "value": "{{stockServerUrl}}/api/stock",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Shop Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shopApiBase}}/health",
+              "host": ["{{shopApiBase}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Stock Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{stockApiBase}}/health",
+              "host": ["{{stockApiBase}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Use Case 1 - Check Stock Availability (REST)",
+      "item": [
+        {
+          "name": "Check Stock Availability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has required fields', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('productId');",
+                  "    pm.expect(jsonData).to.have.property('productName');",
+                  "    pm.expect(jsonData).to.have.property('availableQuantity');",
+                  "    pm.expect(jsonData).to.have.property('available');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{shopApiBase}}/stock/availability?productId=PROD-001&requestedQuantity=10",
+              "host": ["{{shopApiBase}}"],
+              "path": ["stock", "availability"],
+              "query": [
+                {
+                  "key": "productId",
+                  "value": "PROD-001"
+                },
+                {
+                  "key": "requestedQuantity",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Use Case 1: Check if a specific product has sufficient stock quantity available.\n\n**Protocol**: REST (GET)\n**Flow**: Shop Management → Product Stock"
+          },
+          "response": [
+            {
+              "name": "Successful Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{shopApiBase}}/stock/availability?productId=PROD-001&requestedQuantity=10",
+                  "host": ["{{shopApiBase}}"],
+                  "path": ["stock", "availability"],
+                  "query": [
+                    {"key": "productId", "value": "PROD-001"},
+                    {"key": "requestedQuantity", "value": "10"}
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"productId\": \"PROD-001\",\n  \"productName\": \"Wireless Mouse\",\n  \"availableQuantity\": 150,\n  \"requestedQuantity\": 10,\n  \"available\": true,\n  \"warehouseId\": \"WH-001\",\n  \"lastUpdated\": \"2024-01-15T10:30:00Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Use Case 2 - Reserve Stock (REST)",
+      "item": [
+        {
+          "name": "Reserve Stock for Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test('Reservation ID is returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('reservationId');",
+                  "    pm.environment.set('lastReservationId', jsonData.reservationId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PROD-001\",\n  \"quantity\": 5,\n  \"orderId\": \"ORD-2024-001\",\n  \"customerId\": \"CUST-001\",\n  \"reservationDurationMinutes\": 30\n}"
+            },
+            "url": {
+              "raw": "{{shopApiBase}}/stock/reserve",
+              "host": ["{{shopApiBase}}"],
+              "path": ["stock", "reserve"]
+            },
+            "description": "Use Case 2: Reserve stock quantity for a pending order.\n\n**Protocol**: REST (POST)\n**Flow**: Shop Management → Product Stock"
+          },
+          "response": [
+            {
+              "name": "Successful Reservation",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"reservationId\": \"RES-2024-001\",\n  \"productId\": \"PROD-001\",\n  \"quantity\": 5,\n  \"orderId\": \"ORD-2024-001\",\n  \"status\": \"RESERVED\",\n  \"expiresAt\": \"2024-01-15T11:00:00Z\",\n  \"createdAt\": \"2024-01-15T10:30:00Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Use Case 3 - Confirm Stock Deduction (REST)",
+      "item": [
+        {
+          "name": "Confirm Stock Deduction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Confirmation status is CONFIRMED', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.equal('CONFIRMED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservationId\": \"RES-2024-001\",\n  \"orderId\": \"ORD-2024-001\",\n  \"confirmedQuantity\": 5\n}"
+            },
+            "url": {
+              "raw": "{{shopApiBase}}/stock/confirm",
+              "host": ["{{shopApiBase}}"],
+              "path": ["stock", "confirm"]
+            },
+            "description": "Use Case 3: Confirm stock deduction after payment is complete.\n\n**Protocol**: REST (POST)\n**Flow**: Shop Management → Product Stock"
+          },
+          "response": [
+            {
+              "name": "Successful Confirmation",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"reservationId\": \"RES-2024-001\",\n  \"orderId\": \"ORD-2024-001\",\n  \"productId\": \"PROD-001\",\n  \"confirmedQuantity\": 5,\n  \"status\": \"CONFIRMED\",\n  \"newStockLevel\": 145,\n  \"confirmedAt\": \"2024-01-15T10:45:00Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Use Case 4 - Bulk Stock Update (SOAP)",
+      "item": [
+        {
+          "name": "Bulk Stock Update - Via Shop Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"updates\": [\n    {\n      \"productId\": \"PROD-001\",\n      \"warehouseId\": \"WH-001\",\n      \"quantityChange\": 100,\n      \"reason\": \"RESTOCK\"\n    },\n    {\n      \"productId\": \"PROD-002\",\n      \"warehouseId\": \"WH-001\",\n      \"quantityChange\": 50,\n      \"reason\": \"RESTOCK\"\n    },\n    {\n      \"productId\": \"PROD-003\",\n      \"warehouseId\": \"WH-002\",\n      \"quantityChange\": -20,\n      \"reason\": \"ADJUSTMENT\"\n    }\n  ],\n  \"batchId\": \"BATCH-2024-001\",\n  \"performedBy\": \"warehouse-admin\"\n}"
+            },
+            "url": {
+              "raw": "{{shopApiBase}}/warehouse/bulk-update",
+              "host": ["{{shopApiBase}}"],
+              "path": ["warehouse", "bulk-update"]
+            },
+            "description": "Use Case 4: Bulk update stock levels across multiple products (uses SOAP internally).\n\n**Protocol**: SOAP\n**Flow**: Shop Management → Product Stock (SOAP)\n\nNote: The Shop Management service exposes this as REST but internally calls the Stock Service via SOAP."
+          },
+          "response": [
+            {
+              "name": "Successful Bulk Update",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"batchId\": \"BATCH-2024-001\",\n  \"totalUpdates\": 3,\n  \"successfulUpdates\": 3,\n  \"failedUpdates\": 0,\n  \"results\": [\n    {\n      \"productId\": \"PROD-001\",\n      \"warehouseId\": \"WH-001\",\n      \"previousQuantity\": 145,\n      \"newQuantity\": 245,\n      \"status\": \"SUCCESS\"\n    },\n    {\n      \"productId\": \"PROD-002\",\n      \"warehouseId\": \"WH-001\",\n      \"previousQuantity\": 80,\n      \"newQuantity\": 130,\n      \"status\": \"SUCCESS\"\n    },\n    {\n      \"productId\": \"PROD-003\",\n      \"warehouseId\": \"WH-002\",\n      \"previousQuantity\": 200,\n      \"newQuantity\": 180,\n      \"status\": \"SUCCESS\"\n    }\n  ],\n  \"completedAt\": \"2024-01-15T11:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Direct SOAP Request - Bulk Update",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml;charset=UTF-8"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "bulkUpdateStock"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" \n                  xmlns:stock=\"http://stock.service.productstock.com/\">\n    <soapenv:Header/>\n    <soapenv:Body>\n        <stock:bulkUpdateStock>\n            <stock:request>\n                <stock:batchId>BATCH-2024-001</stock:batchId>\n                <stock:performedBy>warehouse-admin</stock:performedBy>\n                <stock:updates>\n                    <stock:productId>PROD-001</stock:productId>\n                    <stock:warehouseId>WH-001</stock:warehouseId>\n                    <stock:quantityChange>100</stock:quantityChange>\n                    <stock:reason>RESTOCK</stock:reason>\n                </stock:updates>\n                <stock:updates>\n                    <stock:productId>PROD-002</stock:productId>\n                    <stock:warehouseId>WH-001</stock:warehouseId>\n                    <stock:quantityChange>50</stock:quantityChange>\n                    <stock:reason>RESTOCK</stock:reason>\n                </stock:updates>\n            </stock:request>\n        </stock:bulkUpdateStock>\n    </soapenv:Body>\n</soapenv:Envelope>"
+            },
+            "url": {
+              "raw": "{{stockApiBase}}/soap/stock",
+              "host": ["{{stockApiBase}}"],
+              "path": ["soap", "stock"]
+            },
+            "description": "Direct SOAP call to Product Stock service for bulk stock update.\n\n**WSDL**: {{stockApiBase}}/soap/stock?wsdl"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Use Case 5 - Warehouse Status (SOAP)",
+      "item": [
+        {
+          "name": "Get Warehouse Status - Via Shop Service",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{shopApiBase}}/warehouse/WH-001/status",
+              "host": ["{{shopApiBase}}"],
+              "path": ["warehouse", "WH-001", "status"]
+            },
+            "description": "Use Case 5: Get comprehensive warehouse status including inventory levels (uses SOAP internally).\n\n**Protocol**: SOAP\n**Flow**: Shop Management → Product Stock (SOAP)"
+          },
+          "response": [
+            {
+              "name": "Successful Response",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"warehouseId\": \"WH-001\",\n  \"warehouseName\": \"Main Warehouse\",\n  \"location\": \"New York, NY\",\n  \"status\": \"ACTIVE\",\n  \"totalProducts\": 150,\n  \"totalQuantity\": 15000,\n  \"lowStockItems\": 12,\n  \"outOfStockItems\": 3,\n  \"capacityUtilization\": 72.5,\n  \"lastInventorySync\": \"2024-01-15T06:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Direct SOAP Request - Warehouse Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml;charset=UTF-8"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "getWarehouseStatus"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" \n                  xmlns:stock=\"http://stock.service.productstock.com/\">\n    <soapenv:Header/>\n    <soapenv:Body>\n        <stock:getWarehouseStatus>\n            <stock:warehouseId>WH-001</stock:warehouseId>\n        </stock:getWarehouseStatus>\n    </soapenv:Body>\n</soapenv:Envelope>"
+            },
+            "url": {
+              "raw": "{{stockApiBase}}/soap/stock",
+              "host": ["{{stockApiBase}}"],
+              "path": ["soap", "stock"]
+            },
+            "description": "Direct SOAP call to Product Stock service for warehouse status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Use Case 6 - Product Details (GraphQL)",
+      "item": [
+        {
+          "name": "Get Product Details - Via Shop Service",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{shopApiBase}}/products/PROD-001/details",
+              "host": ["{{shopApiBase}}"],
+              "path": ["products", "PROD-001", "details"]
+            },
+            "description": "Use Case 6: Get detailed product information with stock data (uses GraphQL internally).\n\n**Protocol**: GraphQL\n**Flow**: Shop Management → Product Stock (GraphQL)"
+          },
+          "response": [
+            {
+              "name": "Successful Response",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"productId\": \"PROD-001\",\n  \"name\": \"Wireless Mouse\",\n  \"description\": \"High-precision wireless mouse with ergonomic design\",\n  \"category\": \"Electronics\",\n  \"sku\": \"WM-2024-001\",\n  \"price\": 29.99,\n  \"totalStock\": 245,\n  \"reservedStock\": 15,\n  \"availableStock\": 230,\n  \"warehouses\": [\n    {\n      \"warehouseId\": \"WH-001\",\n      \"warehouseName\": \"Main Warehouse\",\n      \"quantity\": 150,\n      \"location\": \"New York, NY\"\n    },\n    {\n      \"warehouseId\": \"WH-002\",\n      \"warehouseName\": \"West Coast Distribution\",\n      \"quantity\": 95,\n      \"location\": \"Los Angeles, CA\"\n    }\n  ],\n  \"lastUpdated\": \"2024-01-15T10:30:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Direct GraphQL Query - Product Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query GetProductDetails($productId: ID!) { productDetails(productId: $productId) { productId name description category sku price totalStock reservedStock availableStock warehouses { warehouseId warehouseName quantity location } lastUpdated } }\",\n  \"variables\": {\n    \"productId\": \"PROD-001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{stockApiBase}}/graphql",
+              "host": ["{{stockApiBase}}"],
+              "path": ["graphql"]
+            },
+            "description": "Direct GraphQL query to Product Stock service for product details."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Use Case 7 - Report Damaged Returns (GraphQL)",
+      "item": [
+        {
+          "name": "Report Damaged Goods - Via Shop Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PROD-001\",\n  \"quantity\": 3,\n  \"orderId\": \"ORD-2024-001\",\n  \"reason\": \"DAMAGED_IN_TRANSIT\",\n  \"description\": \"Product packaging was crushed during shipping, items are not sellable\",\n  \"reportedBy\": \"customer-service\"\n}"
+            },
+            "url": {
+              "raw": "{{shopApiBase}}/products/damaged-return",
+              "host": ["{{shopApiBase}}"],
+              "path": ["products", "damaged-return"]
+            },
+            "description": "Use Case 7: Report damaged goods returned from customers (uses GraphQL mutation internally).\n\n**Protocol**: GraphQL\n**Flow**: Shop Management → Product Stock (GraphQL Mutation)"
+          },
+          "response": [
+            {
+              "name": "Successful Report",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"returnId\": \"RET-2024-001\",\n  \"productId\": \"PROD-001\",\n  \"quantity\": 3,\n  \"status\": \"REPORTED\",\n  \"adjustedStockLevel\": 242,\n  \"processedAt\": \"2024-01-15T11:15:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Direct GraphQL Mutation - Damaged Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ReportDamagedReturn($input: DamagedReturnInput!) { reportDamagedReturn(input: $input) { returnId productId quantity status adjustedStockLevel processedAt } }\",\n  \"variables\": {\n    \"input\": {\n      \"productId\": \"PROD-001\",\n      \"quantity\": 3,\n      \"orderId\": \"ORD-2024-001\",\n      \"reason\": \"DAMAGED_IN_TRANSIT\",\n      \"description\": \"Product packaging was crushed during shipping\",\n      \"reportedBy\": \"customer-service\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{stockApiBase}}/graphql",
+              "host": ["{{stockApiBase}}"],
+              "path": ["graphql"]
+            },
+            "description": "Direct GraphQL mutation to Product Stock service for reporting damaged returns."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Use Case 8 - Release Reserved Stock (REST)",
+      "item": [
+        {
+          "name": "Release Reserved Stock",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Release status is RELEASED', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.equal('RELEASED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservationId\": \"RES-2024-001\",\n  \"reason\": \"ORDER_CANCELLED\",\n  \"releasedBy\": \"order-service\"\n}"
+            },
+            "url": {
+              "raw": "{{shopApiBase}}/stock/release",
+              "host": ["{{shopApiBase}}"],
+              "path": ["stock", "release"]
+            },
+            "description": "Use Case 8: Release previously reserved stock (e.g., when order is cancelled).\n\n**Protocol**: REST (POST)\n**Flow**: Shop Management → Product Stock"
+          },
+          "response": [
+            {
+              "name": "Successful Release",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"reservationId\": \"RES-2024-001\",\n  \"productId\": \"PROD-001\",\n  \"releasedQuantity\": 5,\n  \"status\": \"RELEASED\",\n  \"newAvailableStock\": 250,\n  \"releasedAt\": \"2024-01-15T11:30:00Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Use Case 9 - Low Stock Alerts (REST)",
+      "item": [
+        {
+          "name": "Get Low Stock Alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.alerts).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{shopApiBase}}/stock/low-stock-alerts?threshold=20",
+              "host": ["{{shopApiBase}}"],
+              "path": ["stock", "low-stock-alerts"],
+              "query": [
+                {
+                  "key": "threshold",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Use Case 9: Get list of products with stock below specified threshold.\n\n**Protocol**: REST (GET)\n**Flow**: Shop Management → Product Stock"
+          },
+          "response": [
+            {
+              "name": "Successful Response",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"threshold\": 20,\n  \"totalAlerts\": 5,\n  \"alerts\": [\n    {\n      \"productId\": \"PROD-005\",\n      \"productName\": \"USB-C Cable\",\n      \"currentStock\": 8,\n      \"threshold\": 20,\n      \"warehouseId\": \"WH-001\",\n      \"severity\": \"CRITICAL\",\n      \"lastRestocked\": \"2024-01-01T00:00:00Z\"\n    },\n    {\n      \"productId\": \"PROD-012\",\n      \"productName\": \"Phone Charger\",\n      \"currentStock\": 15,\n      \"threshold\": 20,\n      \"warehouseId\": \"WH-002\",\n      \"severity\": \"WARNING\",\n      \"lastRestocked\": \"2024-01-10T00:00:00Z\"\n    }\n  ],\n  \"generatedAt\": \"2024-01-15T12:00:00Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Use Case 10 - Stock Movement History (REST)",
+      "item": [
+        {
+          "name": "Get Stock Movement History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has movements array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.movements).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{shopApiBase}}/stock/movements?productId=PROD-001&startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{shopApiBase}}"],
+              "path": ["stock", "movements"],
+              "query": [
+                {
+                  "key": "productId",
+                  "value": "PROD-001"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31"
+                }
+              ]
+            },
+            "description": "Use Case 10: Get historical stock movements for a product within date range.\n\n**Protocol**: REST (GET)\n**Flow**: Shop Management → Product Stock"
+          },
+          "response": [
+            {
+              "name": "Successful Response",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"productId\": \"PROD-001\",\n  \"productName\": \"Wireless Mouse\",\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-01-31\",\n  \"totalMovements\": 25,\n  \"netChange\": 45,\n  \"movements\": [\n    {\n      \"movementId\": \"MOV-001\",\n      \"type\": \"RESTOCK\",\n      \"quantity\": 100,\n      \"previousStock\": 150,\n      \"newStock\": 250,\n      \"warehouseId\": \"WH-001\",\n      \"reference\": \"PO-2024-001\",\n      \"performedBy\": \"warehouse-admin\",\n      \"timestamp\": \"2024-01-05T09:00:00Z\"\n    },\n    {\n      \"movementId\": \"MOV-002\",\n      \"type\": \"SALE\",\n      \"quantity\": -5,\n      \"previousStock\": 250,\n      \"newStock\": 245,\n      \"warehouseId\": \"WH-001\",\n      \"reference\": \"ORD-2024-001\",\n      \"performedBy\": \"order-service\",\n      \"timestamp\": \"2024-01-15T10:45:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+# GraphQL Schema for Product Stock Service
+# Use Cases 6 & 7: Product details query and damaged goods mutation
+
+scalar BigDecimal
+scalar DateTime
+
+type Query {
+    # Use Case 6: Fetch product details with stock and warehouse location
+    productDetails(sku: String!): ProductDetails
+    
+    # Additional queries
+    stockAvailability(sku: String!): StockAvailability
+    warehouseStatus(warehouseCode: String!): WarehouseStatus
+}
+
+type Mutation {
+    # Use Case 7: Register damaged goods return
+    registerDamagedReturn(input: DamagedReturnInput!): DamagedReturn
+    
+    # Additional mutations
+    reserveStock(input: StockReservationInput!): StockReservation
+    updateStockThreshold(sku: String!, input: ThresholdInput!): StockThreshold
+}
+
+# Product Details with Stock and Warehouse information
+type ProductDetails {
+    sku: String!
+    productName: String
+    description: String
+    category: String
+    brand: String
+    unitPrice: BigDecimal
+    currency: String
+    unitOfMeasure: String
+    weight: Float
+    dimensions: String
+    
+    # Stock information
+    stockCount: Int
+    reservedCount: Int
+    availableCount: Int
+    stockStatus: String
+    
+    # Warehouse information
+    warehouseCode: String
+    warehouseName: String
+    warehouseLocation: String
+    warehouseRegion: String
+    aisle: String
+    shelf: String
+    bin: String
+    
+    lastStockUpdate: DateTime
+    lastPriceUpdate: DateTime
+    isActive: Boolean
+    message: String
+}
+
+# Stock Availability
+type StockAvailability {
+    sku: String!
+    productName: String
+    availableQuantity: Int
+    reservedQuantity: Int
+    warehouseCode: String
+    isAvailable: Boolean
+    lastUpdated: DateTime
+    status: String
+    message: String
+}
+
+# Warehouse Status
+type WarehouseStatus {
+    warehouseCode: String!
+    warehouseName: String
+    location: String
+    region: String
+    status: String
+    totalCapacity: Int
+    usedCapacity: Int
+    availableCapacity: Int
+    utilizationPercentage: Float
+    totalSkus: Int
+    lowStockSkus: Int
+    outOfStockSkus: Int
+    lastInventoryCheck: DateTime
+    isOperational: Boolean
+    message: String
+}
+
+# Damaged Return
+type DamagedReturn {
+    returnId: String!
+    sku: String!
+    quantity: Int!
+    damageType: String
+    damageDescription: String
+    warehouseCode: String
+    reportedBy: String
+    inspectedBy: String
+    disposition: String
+    reportedAt: DateTime
+    processedAt: DateTime
+    status: String
+    refundApproved: Boolean
+    notes: String
+    success: Boolean
+    message: String
+}
+
+# Stock Reservation
+type StockReservation {
+    reservationId: String
+    sku: String!
+    orderId: String!
+    quantity: Int!
+    warehouseCode: String
+    customerId: String
+    status: String
+    reservedAt: DateTime
+    expiresAt: DateTime
+    success: Boolean
+    message: String
+}
+
+# Stock Threshold
+type StockThreshold {
+    sku: String!
+    minThreshold: Int
+    maxThreshold: Int
+    reorderPoint: Int
+    reorderQuantity: Int
+    warehouseCode: String
+    autoReorder: Boolean
+    success: Boolean
+    message: String
+}
+
+# Input Types
+input DamagedReturnInput {
+    sku: String!
+    quantity: Int!
+    damageType: String!
+    damageDescription: String!
+    warehouseCode: String
+    reportedBy: String
+    notes: String
+}
+
+input StockReservationInput {
+    sku: String!
+    orderId: String!
+    quantity: Int!
+    warehouseCode: String
+    customerId: String
+    notes: String
+}
+
+input ThresholdInput {
+    minThreshold: Int!
+    maxThreshold: Int!
+    reorderPoint: Int
+    reorderQuantity: Int
+    warehouseCode: String
+    autoReorder: Boolean
+}

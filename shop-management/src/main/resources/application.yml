@@ -1,0 +1,159 @@
+# =============================================================================
+# Shop Management Application Configuration
+# Server A - Orchestrator Service
+# =============================================================================
+
+spring:
+  application:
+    name: shop-management
+  
+  # ==========================================================================
+  # Database Configuration (PostgreSQL RDS - shop_db schema)
+  # ==========================================================================
+  datasource:
+    url: jdbc:postgresql://${RDS_ENDPOINT:localhost}:5432/microservices?currentSchema=shop_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: ShopHikariPool
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      leak-detection-threshold: 60000
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: shop_db
+        jdbc:
+          batch_size: 50
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+  
+  # ==========================================================================
+  # GraphQL Configuration
+  # ==========================================================================
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+    path: /graphql
+    schema:
+      printer:
+        enabled: true
+    websocket:
+      path: /graphql-ws
+
+  # ==========================================================================
+  # Jackson Configuration
+  # ==========================================================================
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+
+# =============================================================================
+# Server Configuration
+# =============================================================================
+server:
+  port: 8080
+  servlet:
+    context-path: /api/shop
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# =============================================================================
+# Stock Service Configuration (Server B)
+# =============================================================================
+stock-service:
+  base-url: http://${STOCK_SERVICE_HOST:localhost}:${STOCK_SERVICE_PORT:8081}
+  rest:
+    base-path: /api/stock
+  soap:
+    wsdl-url: ${stock-service.base-url}/ws/stock?wsdl
+  graphql:
+    endpoint: ${stock-service.base-url}/graphql
+  connection:
+    timeout: 5000
+    read-timeout: 30000
+  retry:
+    max-attempts: 3
+    backoff-delay: 1000
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+logging:
+  level:
+    root: INFO
+    com.enterprise.shop: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+    org.apache.cxf: DEBUG
+  file:
+    path: ${LOG_PATH:/var/log/shop-app}
+    name: ${logging.file.path}/shop-management.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB
+
+# =============================================================================
+# Actuator Configuration
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+
+# =============================================================================
+# OpenAPI Documentation
+# =============================================================================
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# =============================================================================
+# CXF SOAP Configuration
+# =============================================================================
+cxf:
+  path: /ws
+  servlet:
+    init:
+      service-list-path: /services
